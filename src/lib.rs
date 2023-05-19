@@ -1,3 +1,5 @@
+mod engine;
+
 pub enum Color {
     White,
     Black,
@@ -46,7 +48,7 @@ impl Game {
     }
 
     pub fn make_move(&mut self, from: Square, to: Square) -> bool {
-        todo!()
+        true
     }
 }
 
