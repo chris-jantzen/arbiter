@@ -103,41 +103,31 @@ impl Game {
     }
 
     pub fn to_fen(&self) -> String {
-        let mut fen = String::new();
-
-        fen = game_board_to_piece_str(&self.board);
-        fen += " ";
-
-        fen += match self.active_color {
-            Color::White => "w",
-            Color::Black => "b",
+        let pieces = game_board_to_piece_str(&self.board);
+        let active_color = match self.active_color {
+            Color::White => String::from("w"),
+            Color::Black => String::from("b"),
         };
 
-        fen += " ";
-
+        let mut castleable = String::new();
         if self.white_can_castle_kingside {
-            fen += "K";
+            castleable += "K";
         }
         if self.white_can_castle_queenside {
-            fen += "Q";
+            castleable += "Q";
         }
         if self.black_can_castle_kingside {
-            fen += "k";
+            castleable += "k";
         }
         if self.black_can_castle_queenside {
-            fen += "q";
+            castleable += "q";
         }
 
-        fen += " ";
-        fen += square_to_string(&self.en_passant_target);
+        let en_passant_square = square_to_string(&self.en_passant_target);
+        let half_move = &self.half_move_clock.to_string();
+        let full_move = &self.full_move_number.to_string();
 
-        fen += " ";
-        fen += &self.half_move_clock.to_string()[..];
-
-        fen += " ";
-        fen += &self.full_move_number.to_string()[..];
-
-        return fen;
+        format!("{pieces} {active_color} {castleable} {en_passant_square} {half_move} {full_move}")
     }
 
     pub fn make_move(&mut self, from: Square, to: Square) -> bool {
