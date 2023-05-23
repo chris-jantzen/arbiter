@@ -1,3 +1,5 @@
+use std::str::Chars;
+
 mod engine;
 
 pub enum Color {
@@ -99,12 +101,11 @@ impl Game {
     }
 
     pub fn from_fen(&self, fen: &str) -> Game {
-        // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
         let fen = String::from(fen);
         let mut pieces = fen.split_whitespace();
-        let rows = pieces.next();
-        let rows = rows
-            .unwrap_or_else(|| panic!("Incorrectly formatted string"))
+        let rows = pieces
+            .next()
+            .expect("Incorrectly formatted string")
             .split("/");
         let mut board: [[Option<Piece>; 8]; 8] = [
             [None, None, None, None, None, None, None, None],
@@ -139,7 +140,7 @@ impl Game {
                     '6' => None,
                     '7' => None,
                     '8' => None,
-                    _ => panic!("Impossible case"),
+                    _ => panic!("Invalid character entered in piece placement data."),
                 };
                 board[row_index][piece_index] = board_position;
             }
@@ -153,92 +154,25 @@ impl Game {
         };
 
         let mut castleable = pieces.next().expect("Required").chars();
-        let white_can_castle_kingside = castleable
-            .next()
-            .expect("Must provide castle info for White King Side")
-            != '-';
-        let white_can_castle_queenside = castleable
-            .next()
-            .expect("Must provide castle info for Black Queen Side")
-            != '-';
-        let black_can_castle_kingside = castleable
-            .next()
-            .expect("Must provide castle info for Black King Side")
-            != '-';
-        let black_can_castle_queenside = castleable
-            .next()
-            .expect("Must provide castle info for Black Queen Side")
-            != '-';
+        let white_can_castle_kingside = is_castleable(
+            &mut castleable,
+            "Must provide castle info for White King Side",
+        );
+        let white_can_castle_queenside = is_castleable(
+            &mut castleable,
+            "Must provide castle info for Black Queen Side",
+        );
+        let black_can_castle_kingside = is_castleable(
+            &mut castleable,
+            "Must provide castle info for Black King Side",
+        );
+        let black_can_castle_queenside = is_castleable(
+            &mut castleable,
+            "Must provide castle info for Black Queen Side",
+        );
 
-        let en_passant_target = match pieces.next() {
-            Some("a1") => Some(Square::A1),
-            Some("a2") => Some(Square::A2),
-            Some("a3") => Some(Square::A3),
-            Some("a4") => Some(Square::A4),
-            Some("a5") => Some(Square::A5),
-            Some("a6") => Some(Square::A6),
-            Some("a7") => Some(Square::A7),
-            Some("a8") => Some(Square::A8),
-            Some("b1") => Some(Square::B1),
-            Some("b2") => Some(Square::B2),
-            Some("b3") => Some(Square::B3),
-            Some("b4") => Some(Square::B4),
-            Some("b5") => Some(Square::B5),
-            Some("b6") => Some(Square::B6),
-            Some("b7") => Some(Square::B7),
-            Some("b8") => Some(Square::B8),
-            Some("c1") => Some(Square::C1),
-            Some("c2") => Some(Square::C2),
-            Some("c3") => Some(Square::C3),
-            Some("c4") => Some(Square::C4),
-            Some("c5") => Some(Square::C5),
-            Some("c6") => Some(Square::C6),
-            Some("c7") => Some(Square::C7),
-            Some("c8") => Some(Square::C8),
-            Some("d1") => Some(Square::D1),
-            Some("d2") => Some(Square::D2),
-            Some("d3") => Some(Square::D3),
-            Some("d4") => Some(Square::D4),
-            Some("d5") => Some(Square::D5),
-            Some("d6") => Some(Square::D6),
-            Some("d7") => Some(Square::D7),
-            Some("d8") => Some(Square::D8),
-            Some("e1") => Some(Square::E1),
-            Some("e2") => Some(Square::E2),
-            Some("e3") => Some(Square::E3),
-            Some("e4") => Some(Square::E4),
-            Some("e5") => Some(Square::E5),
-            Some("e6") => Some(Square::E6),
-            Some("e7") => Some(Square::E7),
-            Some("e8") => Some(Square::E8),
-            Some("f1") => Some(Square::F1),
-            Some("f2") => Some(Square::F2),
-            Some("f3") => Some(Square::F3),
-            Some("f4") => Some(Square::F4),
-            Some("f5") => Some(Square::F5),
-            Some("f6") => Some(Square::F6),
-            Some("f7") => Some(Square::F7),
-            Some("f8") => Some(Square::F8),
-            Some("g1") => Some(Square::G1),
-            Some("g2") => Some(Square::G2),
-            Some("g3") => Some(Square::G3),
-            Some("g4") => Some(Square::G4),
-            Some("g5") => Some(Square::G5),
-            Some("g6") => Some(Square::G6),
-            Some("g7") => Some(Square::G7),
-            Some("g8") => Some(Square::G8),
-            Some("h1") => Some(Square::H1),
-            Some("h2") => Some(Square::H2),
-            Some("h3") => Some(Square::H3),
-            Some("h4") => Some(Square::H4),
-            Some("h5") => Some(Square::H5),
-            Some("h6") => Some(Square::H6),
-            Some("h7") => Some(Square::H7),
-            Some("h8") => Some(Square::H8),
-            Some("-") => None,
-            None => panic!("Must provide en passant target in FEN"),
-            _ => panic!("Must provide en passant target in FEN"),
-        };
+        let target_square = pieces.next();
+        let en_passant_target = convert_en_passant_target(target_square);
 
         let half_move_clock = pieces
             .next()
@@ -408,6 +342,82 @@ fn game_board_to_piece_str(board: &[[Option<Piece>; 8]; 8]) -> String {
     }
     // Trim the last /
     pieces[..pieces.len() - 1].to_string()
+}
+
+fn is_castleable(availability: &mut Chars, error_message: &str) -> bool {
+    availability.next().expect(error_message) != '-'
+}
+
+fn convert_en_passant_target(target_square: Option<&str>) -> Option<Square> {
+    match target_square {
+        Some("a1") => Some(Square::A1),
+        Some("a2") => Some(Square::A2),
+        Some("a3") => Some(Square::A3),
+        Some("a4") => Some(Square::A4),
+        Some("a5") => Some(Square::A5),
+        Some("a6") => Some(Square::A6),
+        Some("a7") => Some(Square::A7),
+        Some("a8") => Some(Square::A8),
+        Some("b1") => Some(Square::B1),
+        Some("b2") => Some(Square::B2),
+        Some("b3") => Some(Square::B3),
+        Some("b4") => Some(Square::B4),
+        Some("b5") => Some(Square::B5),
+        Some("b6") => Some(Square::B6),
+        Some("b7") => Some(Square::B7),
+        Some("b8") => Some(Square::B8),
+        Some("c1") => Some(Square::C1),
+        Some("c2") => Some(Square::C2),
+        Some("c3") => Some(Square::C3),
+        Some("c4") => Some(Square::C4),
+        Some("c5") => Some(Square::C5),
+        Some("c6") => Some(Square::C6),
+        Some("c7") => Some(Square::C7),
+        Some("c8") => Some(Square::C8),
+        Some("d1") => Some(Square::D1),
+        Some("d2") => Some(Square::D2),
+        Some("d3") => Some(Square::D3),
+        Some("d4") => Some(Square::D4),
+        Some("d5") => Some(Square::D5),
+        Some("d6") => Some(Square::D6),
+        Some("d7") => Some(Square::D7),
+        Some("d8") => Some(Square::D8),
+        Some("e1") => Some(Square::E1),
+        Some("e2") => Some(Square::E2),
+        Some("e3") => Some(Square::E3),
+        Some("e4") => Some(Square::E4),
+        Some("e5") => Some(Square::E5),
+        Some("e6") => Some(Square::E6),
+        Some("e7") => Some(Square::E7),
+        Some("e8") => Some(Square::E8),
+        Some("f1") => Some(Square::F1),
+        Some("f2") => Some(Square::F2),
+        Some("f3") => Some(Square::F3),
+        Some("f4") => Some(Square::F4),
+        Some("f5") => Some(Square::F5),
+        Some("f6") => Some(Square::F6),
+        Some("f7") => Some(Square::F7),
+        Some("f8") => Some(Square::F8),
+        Some("g1") => Some(Square::G1),
+        Some("g2") => Some(Square::G2),
+        Some("g3") => Some(Square::G3),
+        Some("g4") => Some(Square::G4),
+        Some("g5") => Some(Square::G5),
+        Some("g6") => Some(Square::G6),
+        Some("g7") => Some(Square::G7),
+        Some("g8") => Some(Square::G8),
+        Some("h1") => Some(Square::H1),
+        Some("h2") => Some(Square::H2),
+        Some("h3") => Some(Square::H3),
+        Some("h4") => Some(Square::H4),
+        Some("h5") => Some(Square::H5),
+        Some("h6") => Some(Square::H6),
+        Some("h7") => Some(Square::H7),
+        Some("h8") => Some(Square::H8),
+        Some("-") => None,
+        None => panic!("Must provide en passant target in FEN"),
+        _ => panic!("Must provide en passant target in FEN"),
+    }
 }
 
 #[cfg(test)]
