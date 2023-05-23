@@ -98,8 +98,171 @@ impl Game {
         }
     }
 
-    pub fn from_fen(fen: &str) -> Option<Game> {
-        todo!()
+    pub fn from_fen(&self, fen: &str) -> Game {
+        // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+        let fen = String::from(fen);
+        let mut pieces = fen.split_whitespace();
+        let rows = pieces.next();
+        let rows = rows
+            .unwrap_or_else(|| panic!("Incorrectly formatted string"))
+            .split("/");
+        let mut board: [[Option<Piece>; 8]; 8] = [
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+        ];
+        for (row_index, row) in rows.enumerate() {
+            for (piece_index, piece) in row.chars().enumerate() {
+                let board_position = match piece {
+                    'r' => Some(Piece::Rook(Color::Black)),
+                    'n' => Some(Piece::Knight(Color::Black)),
+                    'b' => Some(Piece::Bishop(Color::Black)),
+                    'q' => Some(Piece::Queen(Color::Black)),
+                    'k' => Some(Piece::King(Color::Black)),
+                    'p' => Some(Piece::Pawn(Color::Black)),
+                    'P' => Some(Piece::Pawn(Color::White)),
+                    'R' => Some(Piece::Rook(Color::White)),
+                    'N' => Some(Piece::Knight(Color::White)),
+                    'B' => Some(Piece::Bishop(Color::White)),
+                    'Q' => Some(Piece::Queen(Color::White)),
+                    'K' => Some(Piece::King(Color::White)),
+                    '1' => None,
+                    '2' => None,
+                    '3' => None,
+                    '4' => None,
+                    '5' => None,
+                    '6' => None,
+                    '7' => None,
+                    '8' => None,
+                    _ => panic!("Impossible case"),
+                };
+                board[row_index][piece_index] = board_position;
+            }
+        }
+
+        let active_color = match pieces.next() {
+            Some("w") => Color::White,
+            Some("b") => Color::Black,
+            None => panic!("Must have active color in FEN"),
+            _ => panic!("Must have active color in FEN"),
+        };
+
+        let mut castleable = pieces.next().expect("Required").chars();
+        let white_can_castle_kingside = castleable
+            .next()
+            .expect("Must provide castle info for White King Side")
+            != '-';
+        let white_can_castle_queenside = castleable
+            .next()
+            .expect("Must provide castle info for Black Queen Side")
+            != '-';
+        let black_can_castle_kingside = castleable
+            .next()
+            .expect("Must provide castle info for Black King Side")
+            != '-';
+        let black_can_castle_queenside = castleable
+            .next()
+            .expect("Must provide castle info for Black Queen Side")
+            != '-';
+
+        let en_passant_target = match pieces.next() {
+            Some("a1") => Some(Square::A1),
+            Some("a2") => Some(Square::A2),
+            Some("a3") => Some(Square::A3),
+            Some("a4") => Some(Square::A4),
+            Some("a5") => Some(Square::A5),
+            Some("a6") => Some(Square::A6),
+            Some("a7") => Some(Square::A7),
+            Some("a8") => Some(Square::A8),
+            Some("b1") => Some(Square::B1),
+            Some("b2") => Some(Square::B2),
+            Some("b3") => Some(Square::B3),
+            Some("b4") => Some(Square::B4),
+            Some("b5") => Some(Square::B5),
+            Some("b6") => Some(Square::B6),
+            Some("b7") => Some(Square::B7),
+            Some("b8") => Some(Square::B8),
+            Some("c1") => Some(Square::C1),
+            Some("c2") => Some(Square::C2),
+            Some("c3") => Some(Square::C3),
+            Some("c4") => Some(Square::C4),
+            Some("c5") => Some(Square::C5),
+            Some("c6") => Some(Square::C6),
+            Some("c7") => Some(Square::C7),
+            Some("c8") => Some(Square::C8),
+            Some("d1") => Some(Square::D1),
+            Some("d2") => Some(Square::D2),
+            Some("d3") => Some(Square::D3),
+            Some("d4") => Some(Square::D4),
+            Some("d5") => Some(Square::D5),
+            Some("d6") => Some(Square::D6),
+            Some("d7") => Some(Square::D7),
+            Some("d8") => Some(Square::D8),
+            Some("e1") => Some(Square::E1),
+            Some("e2") => Some(Square::E2),
+            Some("e3") => Some(Square::E3),
+            Some("e4") => Some(Square::E4),
+            Some("e5") => Some(Square::E5),
+            Some("e6") => Some(Square::E6),
+            Some("e7") => Some(Square::E7),
+            Some("e8") => Some(Square::E8),
+            Some("f1") => Some(Square::F1),
+            Some("f2") => Some(Square::F2),
+            Some("f3") => Some(Square::F3),
+            Some("f4") => Some(Square::F4),
+            Some("f5") => Some(Square::F5),
+            Some("f6") => Some(Square::F6),
+            Some("f7") => Some(Square::F7),
+            Some("f8") => Some(Square::F8),
+            Some("g1") => Some(Square::G1),
+            Some("g2") => Some(Square::G2),
+            Some("g3") => Some(Square::G3),
+            Some("g4") => Some(Square::G4),
+            Some("g5") => Some(Square::G5),
+            Some("g6") => Some(Square::G6),
+            Some("g7") => Some(Square::G7),
+            Some("g8") => Some(Square::G8),
+            Some("h1") => Some(Square::H1),
+            Some("h2") => Some(Square::H2),
+            Some("h3") => Some(Square::H3),
+            Some("h4") => Some(Square::H4),
+            Some("h5") => Some(Square::H5),
+            Some("h6") => Some(Square::H6),
+            Some("h7") => Some(Square::H7),
+            Some("h8") => Some(Square::H8),
+            Some("-") => None,
+            None => panic!("Must provide en passant target in FEN"),
+            _ => panic!("Must provide en passant target in FEN"),
+        };
+
+        let half_move_clock = pieces
+            .next()
+            .expect("Must provide half move clock value in FEN")
+            .parse::<u8>()
+            .expect("Could not parse half move clock value");
+
+        let full_move_number = pieces
+            .next()
+            .expect("Must provide full move number value in FEN")
+            .parse::<u16>()
+            .expect("Could not parse full move number value");
+
+        Game {
+            board,
+            active_color,
+            white_can_castle_kingside,
+            white_can_castle_queenside,
+            black_can_castle_kingside,
+            black_can_castle_queenside,
+            en_passant_target,
+            half_move_clock,
+            full_move_number,
+        }
     }
 
     pub fn to_fen(&self) -> String {
@@ -262,8 +425,49 @@ mod tests {
     #[test]
     fn from_fen_success() {
         // New game fen string
-        let fen = String::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        assert_eq!(fen, fen.clone()); // TEMP
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let game = Game::new();
+        let res = game.from_fen(fen);
+        assert_eq!(res.half_move_clock, 0);
+        assert_eq!(res.full_move_number, 1);
+
+        assert_eq!(res.white_can_castle_kingside, true);
+        assert_eq!(res.white_can_castle_queenside, true);
+        assert_eq!(res.black_can_castle_kingside, true);
+        assert_eq!(res.black_can_castle_queenside, true);
+
+        assert!(matches!(res.en_passant_target, None));
+
+        // Black Pieces
+        assert!(matches!(res.board[0][0], Some(Piece::Rook(Color::Black))));
+        assert!(matches!(res.board[0][1], Some(Piece::Knight(Color::Black))));
+        assert!(matches!(res.board[0][2], Some(Piece::Bishop(Color::Black))));
+        assert!(matches!(res.board[0][3], Some(Piece::Queen(Color::Black))));
+        assert!(matches!(res.board[0][4], Some(Piece::King(Color::Black))));
+        assert!(matches!(res.board[0][5], Some(Piece::Bishop(Color::Black))));
+        assert!(matches!(res.board[0][6], Some(Piece::Knight(Color::Black))));
+        assert!(matches!(res.board[0][7], Some(Piece::Rook(Color::Black))));
+
+        // White Pieces
+        assert!(matches!(res.board[7][0], Some(Piece::Rook(Color::White))));
+        assert!(matches!(res.board[7][1], Some(Piece::Knight(Color::White))));
+        assert!(matches!(res.board[7][2], Some(Piece::Bishop(Color::White))));
+        assert!(matches!(res.board[7][3], Some(Piece::Queen(Color::White))));
+        assert!(matches!(res.board[7][4], Some(Piece::King(Color::White))));
+        assert!(matches!(res.board[7][5], Some(Piece::Bishop(Color::White))));
+        assert!(matches!(res.board[7][6], Some(Piece::Knight(Color::White))));
+        assert!(matches!(res.board[7][7], Some(Piece::Rook(Color::White))));
+
+        for i in 0..8 {
+            assert!(matches!(res.board[1][i], Some(Piece::Pawn(Color::Black))));
+            assert!(matches!(res.board[6][i], Some(Piece::Pawn(Color::White))));
+        }
+
+        for i in 2..6 {
+            for j in 0..8 {
+                assert!(matches!(res.board[i][j], None));
+            }
+        }
     }
 
     #[test]
