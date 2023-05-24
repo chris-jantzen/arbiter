@@ -39,65 +39,6 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new() -> Game {
-        Game {
-            board: [
-                [
-                    Some(Piece::Rook(Color::Black)),
-                    Some(Piece::Knight(Color::Black)),
-                    Some(Piece::Bishop(Color::Black)),
-                    Some(Piece::Queen(Color::Black)),
-                    Some(Piece::King(Color::Black)),
-                    Some(Piece::Bishop(Color::Black)),
-                    Some(Piece::Knight(Color::Black)),
-                    Some(Piece::Rook(Color::Black)),
-                ],
-                [
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                ],
-                [
-                    Some(Piece::Rook(Color::White)),
-                    Some(Piece::Knight(Color::White)),
-                    Some(Piece::Bishop(Color::White)),
-                    Some(Piece::Queen(Color::White)),
-                    Some(Piece::King(Color::White)),
-                    Some(Piece::Bishop(Color::White)),
-                    Some(Piece::Knight(Color::White)),
-                    Some(Piece::Rook(Color::White)),
-                ],
-            ],
-            active_color: Color::White,
-            white_can_castle_kingside: true,
-            white_can_castle_queenside: true,
-            black_can_castle_kingside: true,
-            black_can_castle_queenside: true,
-            en_passant_target: None,
-            half_move_clock: 0,
-            full_move_number: 1,
-        }
-    }
-
     pub fn from_fen(&self, fen: &str) -> Game {
         let fen = String::from(fen);
         let mut fen_fields = fen.split_whitespace();
@@ -192,6 +133,67 @@ impl Game {
 
     pub fn make_move(&mut self, from: Square, to: Square) -> bool {
         true
+    }
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Game {
+            board: [
+                [
+                    Some(Piece::Rook(Color::Black)),
+                    Some(Piece::Knight(Color::Black)),
+                    Some(Piece::Bishop(Color::Black)),
+                    Some(Piece::Queen(Color::Black)),
+                    Some(Piece::King(Color::Black)),
+                    Some(Piece::Bishop(Color::Black)),
+                    Some(Piece::Knight(Color::Black)),
+                    Some(Piece::Rook(Color::Black)),
+                ],
+                [
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                ],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                ],
+                [
+                    Some(Piece::Rook(Color::White)),
+                    Some(Piece::Knight(Color::White)),
+                    Some(Piece::Bishop(Color::White)),
+                    Some(Piece::Queen(Color::White)),
+                    Some(Piece::King(Color::White)),
+                    Some(Piece::Bishop(Color::White)),
+                    Some(Piece::Knight(Color::White)),
+                    Some(Piece::Rook(Color::White)),
+                ],
+            ],
+            active_color: Color::White,
+            white_can_castle_kingside: true,
+            white_can_castle_queenside: true,
+            black_can_castle_kingside: true,
+            black_can_castle_queenside: true,
+            en_passant_target: None,
+            half_move_clock: 0,
+            full_move_number: 1,
+        }
     }
 }
 
@@ -414,14 +416,7 @@ mod fen_utils {
                     'B' => Some(Piece::Bishop(Color::White)),
                     'Q' => Some(Piece::Queen(Color::White)),
                     'K' => Some(Piece::King(Color::White)),
-                    '1' => None,
-                    '2' => None,
-                    '3' => None,
-                    '4' => None,
-                    '5' => None,
-                    '6' => None,
-                    '7' => None,
-                    '8' => None,
+                    '1'..='8' => None,
                     _ => panic!("Invalid character entered in piece placement data."),
                 };
                 board[row_index][piece_index] = board_position;
@@ -438,7 +433,7 @@ mod tests {
 
     #[test]
     fn to_fen_partial() {
-        let game = Game::new();
+        let game = Game::default();
 
         let f = String::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         assert_eq!(f, game.to_fen());
@@ -448,7 +443,7 @@ mod tests {
     fn from_fen_success() {
         // New game fen string
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        let game = Game::new();
+        let game = Game::default();
         let res = game.from_fen(fen);
         assert_eq!(res.half_move_clock, 0);
         assert_eq!(res.full_move_number, 1);
@@ -494,7 +489,7 @@ mod tests {
 
     #[test]
     fn to_fen_success() {
-        let game = Game::new();
+        let game = Game::default();
 
         assert_eq!(
             game.to_fen(),
