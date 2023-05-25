@@ -7,6 +7,15 @@ pub enum Color {
     Black,
 }
 
+impl Color {
+    fn to_string(color: &Color) -> &str {
+        match color {
+            Color::White => "w",
+            Color::Black => "b",
+        }
+    }
+}
+
 pub enum Piece {
     Pawn(Color),
     Knight(Color),
@@ -14,6 +23,27 @@ pub enum Piece {
     Rook(Color),
     Queen(Color),
     King(Color),
+}
+
+impl Piece {
+    fn from_char(piece: &char) -> Option<Piece> {
+        match piece {
+            'r' => Some(Piece::Rook(Color::Black)),
+            'n' => Some(Piece::Knight(Color::Black)),
+            'b' => Some(Piece::Bishop(Color::Black)),
+            'q' => Some(Piece::Queen(Color::Black)),
+            'k' => Some(Piece::King(Color::Black)),
+            'p' => Some(Piece::Pawn(Color::Black)),
+            'P' => Some(Piece::Pawn(Color::White)),
+            'R' => Some(Piece::Rook(Color::White)),
+            'N' => Some(Piece::Knight(Color::White)),
+            'B' => Some(Piece::Bishop(Color::White)),
+            'Q' => Some(Piece::Queen(Color::White)),
+            'K' => Some(Piece::King(Color::White)),
+            '1'..='8' => None,
+            _ => panic!("Invalid character entered in piece placement data."),
+        }
+    }
 }
 
 #[rustfmt::skip]
@@ -28,9 +58,37 @@ pub enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
 }
 
-impl Square {
-    fn square_to_string(square: &Option<Square>) -> String {
-        String::from(match square {
+trait ToStr {
+    type Input;
+
+    fn to_str(input: &Option<Self::Input>) -> &str;
+}
+
+impl ToStr for Piece {
+    type Input = Piece;
+    fn to_str(piece: &Option<Piece>) -> &str {
+        match piece {
+            Some(Piece::Pawn(Color::Black)) => "p",
+            Some(Piece::Rook(Color::Black)) => "r",
+            Some(Piece::Knight(Color::Black)) => "n",
+            Some(Piece::Bishop(Color::Black)) => "b",
+            Some(Piece::Queen(Color::Black)) => "q",
+            Some(Piece::King(Color::Black)) => "k",
+            Some(Piece::Pawn(Color::White)) => "P",
+            Some(Piece::Rook(Color::White)) => "R",
+            Some(Piece::Knight(Color::White)) => "N",
+            Some(Piece::Bishop(Color::White)) => "B",
+            Some(Piece::Queen(Color::White)) => "Q",
+            Some(Piece::King(Color::White)) => "K",
+            None => "empty",
+        }
+    }
+}
+
+impl ToStr for Square {
+    type Input = Square;
+    fn to_str(square: &Option<Square>) -> &str {
+        match square {
             Some(Square::A1) => "a1",
             Some(Square::A2) => "a2",
             Some(Square::A3) => "a3",
@@ -96,84 +154,87 @@ impl Square {
             Some(Square::H7) => "h7",
             Some(Square::H8) => "h8",
             None => "-",
-        })
+        }
     }
 }
 
 trait FromString {
-    fn from_string(str: Option<&str>) -> Option<Square>;
+    type Output;
+
+    fn from_string(str: &str) -> Option<Self::Output>;
 }
 
 impl FromString for Square {
-    fn from_string(str: Option<&str>) -> Option<Square> {
+    type Output = Square;
+
+    fn from_string(str: &str) -> Option<Square> {
         match str {
-            Some("a1") => Some(Square::A1),
-            Some("a2") => Some(Square::A2),
-            Some("a3") => Some(Square::A3),
-            Some("a4") => Some(Square::A4),
-            Some("a5") => Some(Square::A5),
-            Some("a6") => Some(Square::A6),
-            Some("a7") => Some(Square::A7),
-            Some("a8") => Some(Square::A8),
-            Some("b1") => Some(Square::B1),
-            Some("b2") => Some(Square::B2),
-            Some("b3") => Some(Square::B3),
-            Some("b4") => Some(Square::B4),
-            Some("b5") => Some(Square::B5),
-            Some("b6") => Some(Square::B6),
-            Some("b7") => Some(Square::B7),
-            Some("b8") => Some(Square::B8),
-            Some("c1") => Some(Square::C1),
-            Some("c2") => Some(Square::C2),
-            Some("c3") => Some(Square::C3),
-            Some("c4") => Some(Square::C4),
-            Some("c5") => Some(Square::C5),
-            Some("c6") => Some(Square::C6),
-            Some("c7") => Some(Square::C7),
-            Some("c8") => Some(Square::C8),
-            Some("d1") => Some(Square::D1),
-            Some("d2") => Some(Square::D2),
-            Some("d3") => Some(Square::D3),
-            Some("d4") => Some(Square::D4),
-            Some("d5") => Some(Square::D5),
-            Some("d6") => Some(Square::D6),
-            Some("d7") => Some(Square::D7),
-            Some("d8") => Some(Square::D8),
-            Some("e1") => Some(Square::E1),
-            Some("e2") => Some(Square::E2),
-            Some("e3") => Some(Square::E3),
-            Some("e4") => Some(Square::E4),
-            Some("e5") => Some(Square::E5),
-            Some("e6") => Some(Square::E6),
-            Some("e7") => Some(Square::E7),
-            Some("e8") => Some(Square::E8),
-            Some("f1") => Some(Square::F1),
-            Some("f2") => Some(Square::F2),
-            Some("f3") => Some(Square::F3),
-            Some("f4") => Some(Square::F4),
-            Some("f5") => Some(Square::F5),
-            Some("f6") => Some(Square::F6),
-            Some("f7") => Some(Square::F7),
-            Some("f8") => Some(Square::F8),
-            Some("g1") => Some(Square::G1),
-            Some("g2") => Some(Square::G2),
-            Some("g3") => Some(Square::G3),
-            Some("g4") => Some(Square::G4),
-            Some("g5") => Some(Square::G5),
-            Some("g6") => Some(Square::G6),
-            Some("g7") => Some(Square::G7),
-            Some("g8") => Some(Square::G8),
-            Some("h1") => Some(Square::H1),
-            Some("h2") => Some(Square::H2),
-            Some("h3") => Some(Square::H3),
-            Some("h4") => Some(Square::H4),
-            Some("h5") => Some(Square::H5),
-            Some("h6") => Some(Square::H6),
-            Some("h7") => Some(Square::H7),
-            Some("h8") => Some(Square::H8),
-            Some("-") => None,
-            None => panic!("Must provide en passant target in FEN"),
-            _ => panic!("Must provide en passant target in FEN"),
+            "a1" => Some(Square::A1),
+            "a2" => Some(Square::A2),
+            "a3" => Some(Square::A3),
+            "a4" => Some(Square::A4),
+            "a5" => Some(Square::A5),
+            "a6" => Some(Square::A6),
+            "a7" => Some(Square::A7),
+            "a8" => Some(Square::A8),
+            "b1" => Some(Square::B1),
+            "b2" => Some(Square::B2),
+            "b3" => Some(Square::B3),
+            "b4" => Some(Square::B4),
+            "b5" => Some(Square::B5),
+            "b6" => Some(Square::B6),
+            "b7" => Some(Square::B7),
+            "b8" => Some(Square::B8),
+            "c1" => Some(Square::C1),
+            "c2" => Some(Square::C2),
+            "c3" => Some(Square::C3),
+            "c4" => Some(Square::C4),
+            "c5" => Some(Square::C5),
+            "c6" => Some(Square::C6),
+            "c7" => Some(Square::C7),
+            "c8" => Some(Square::C8),
+            "d1" => Some(Square::D1),
+            "d2" => Some(Square::D2),
+            "d3" => Some(Square::D3),
+            "d4" => Some(Square::D4),
+            "d5" => Some(Square::D5),
+            "d6" => Some(Square::D6),
+            "d7" => Some(Square::D7),
+            "d8" => Some(Square::D8),
+            "e1" => Some(Square::E1),
+            "e2" => Some(Square::E2),
+            "e3" => Some(Square::E3),
+            "e4" => Some(Square::E4),
+            "e5" => Some(Square::E5),
+            "e6" => Some(Square::E6),
+            "e7" => Some(Square::E7),
+            "e8" => Some(Square::E8),
+            "f1" => Some(Square::F1),
+            "f2" => Some(Square::F2),
+            "f3" => Some(Square::F3),
+            "f4" => Some(Square::F4),
+            "f5" => Some(Square::F5),
+            "f6" => Some(Square::F6),
+            "f7" => Some(Square::F7),
+            "f8" => Some(Square::F8),
+            "g1" => Some(Square::G1),
+            "g2" => Some(Square::G2),
+            "g3" => Some(Square::G3),
+            "g4" => Some(Square::G4),
+            "g5" => Some(Square::G5),
+            "g6" => Some(Square::G6),
+            "g7" => Some(Square::G7),
+            "g8" => Some(Square::G8),
+            "h1" => Some(Square::H1),
+            "h2" => Some(Square::H2),
+            "h3" => Some(Square::H3),
+            "h4" => Some(Square::H4),
+            "h5" => Some(Square::H5),
+            "h6" => Some(Square::H6),
+            "h7" => Some(Square::H7),
+            "h8" => Some(Square::H8),
+            "-" => None,
+            _ => panic!("En Passant Target Required in FEN string"),
         }
     }
 }
@@ -203,7 +264,7 @@ impl Game {
             Some("w") => Color::White,
             Some("b") => Color::Black,
             None => panic!("Must have active color in FEN"),
-            _ => panic!("Must have active color in FEN"),
+            _ => panic!("Must have active color in FEN - valid values are either 'w' or 'b'"),
         };
 
         let mut castleable = fen_fields
@@ -228,7 +289,8 @@ impl Game {
         );
 
         let target_square = fen_fields.next();
-        let en_passant_target = Square::from_string(target_square);
+        let en_passant_target =
+            Square::from_string(target_square.expect("En Passant Target Required in FEN string"));
 
         let half_move_clock = fen_fields
             .next()
@@ -257,27 +319,11 @@ impl Game {
 
     pub fn to_fen(&self) -> String {
         let pieces = Game::board_to_piece_string(&self);
-        let active_color = match self.active_color {
-            Color::White => String::from("w"),
-            Color::Black => String::from("b"),
-        };
+        let active_color = Color::to_string(&self.active_color);
 
-        let mut castleable = String::new();
-        if self.white_can_castle_kingside {
-            castleable += "K";
-        }
-        if self.white_can_castle_queenside {
-            castleable += "Q";
-        }
-        if self.black_can_castle_kingside {
-            castleable += "k";
-        }
-        if self.black_can_castle_queenside {
-            castleable += "q";
-        }
+        let castleable = self.castleable_to_string();
 
-        // let en_passant_square = fen_utils::square_to_string(&self.en_passant_target);
-        let en_passant_square = Square::square_to_string(&self.en_passant_target);
+        let en_passant_square = Square::to_str(&self.en_passant_target);
         let half_move = &self.half_move_clock.to_string();
         let full_move = &self.full_move_number.to_string();
 
@@ -302,22 +348,7 @@ impl Game {
 
         for (row_index, row) in rows.enumerate() {
             for (piece_index, piece) in row.chars().enumerate() {
-                let board_position = match piece {
-                    'r' => Some(Piece::Rook(Color::Black)),
-                    'n' => Some(Piece::Knight(Color::Black)),
-                    'b' => Some(Piece::Bishop(Color::Black)),
-                    'q' => Some(Piece::Queen(Color::Black)),
-                    'k' => Some(Piece::King(Color::Black)),
-                    'p' => Some(Piece::Pawn(Color::Black)),
-                    'P' => Some(Piece::Pawn(Color::White)),
-                    'R' => Some(Piece::Rook(Color::White)),
-                    'N' => Some(Piece::Knight(Color::White)),
-                    'B' => Some(Piece::Bishop(Color::White)),
-                    'Q' => Some(Piece::Queen(Color::White)),
-                    'K' => Some(Piece::King(Color::White)),
-                    '1'..='8' => None,
-                    _ => panic!("Invalid character entered in piece placement data."),
-                };
+                let board_position = Piece::from_char(&piece);
                 board[row_index][piece_index] = board_position;
             }
         }
@@ -332,21 +363,7 @@ impl Game {
 
         for row in &self.board {
             for piece in row {
-                let p = match piece {
-                    Some(Piece::Pawn(Color::Black)) => "p",
-                    Some(Piece::Rook(Color::Black)) => "r",
-                    Some(Piece::Knight(Color::Black)) => "n",
-                    Some(Piece::Bishop(Color::Black)) => "b",
-                    Some(Piece::Queen(Color::Black)) => "q",
-                    Some(Piece::King(Color::Black)) => "k",
-                    Some(Piece::Pawn(Color::White)) => "P",
-                    Some(Piece::Rook(Color::White)) => "R",
-                    Some(Piece::Knight(Color::White)) => "N",
-                    Some(Piece::Bishop(Color::White)) => "B",
-                    Some(Piece::Queen(Color::White)) => "Q",
-                    Some(Piece::King(Color::White)) => "K",
-                    None => "empty",
-                };
+                let p = Piece::to_str(piece);
                 if p != "empty" {
                     if num > 0 {
                         pieces += &num.to_string();
@@ -369,6 +386,31 @@ impl Game {
 
     fn is_castleable(availability: &mut Chars, error_message: &str) -> bool {
         availability.next().expect(error_message) != '-'
+    }
+
+    fn castleable_to_string(&self) -> String {
+        let mut castleable = String::new();
+        if self.white_can_castle_kingside {
+            castleable += "K";
+        } else {
+            castleable += "-";
+        }
+        if self.white_can_castle_queenside {
+            castleable += "Q";
+        } else {
+            castleable += "-";
+        }
+        if self.black_can_castle_kingside {
+            castleable += "k";
+        } else {
+            castleable += "-";
+        }
+        if self.black_can_castle_queenside {
+            castleable += "q";
+        } else {
+            castleable += "-";
+        }
+        castleable
     }
 }
 
