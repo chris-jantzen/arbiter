@@ -157,14 +157,12 @@ impl ToStr for Square {
 }
 
 trait FromString {
-    type Output;
-
-    fn from_string(str: &str) -> Option<Self::Output>;
+    fn from_string(str: &str) -> Option<Self>
+    where
+        Self: Sized;
 }
 
 impl FromString for Square {
-    type Output = Square;
-
     fn from_string(str: &str) -> Option<Square> {
         match str {
             "a1" => Some(Square::A1),
