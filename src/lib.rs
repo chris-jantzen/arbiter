@@ -1,3 +1,5 @@
+use std::str::{Chars, Split};
+
 mod engine;
 
 pub enum Color {
@@ -26,183 +28,9 @@ pub enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
 }
 
-pub struct Game {
-    board: [[Option<Piece>; 8]; 8],
-    active_color: Color,
-    white_can_castle_kingside: bool,
-    white_can_castle_queenside: bool,
-    black_can_castle_kingside: bool,
-    black_can_castle_queenside: bool,
-    en_passant_target: Option<Square>,
-    half_move_clock: u8,
-    full_move_number: u16,
-}
-
-impl Game {
-    pub fn from_fen(&self, fen: &str) -> Game {
-        let fen = String::from(fen);
-        let mut fen_fields = fen.split_whitespace();
-        let rows = fen_fields
-            .next()
-            .expect("Incorrectly formatted string")
-            .split("/");
-        let board = fen_utils::assemble_board(rows);
-        let active_color = match fen_fields.next() {
-            Some("w") => Color::White,
-            Some("b") => Color::Black,
-            None => panic!("Must have active color in FEN"),
-            _ => panic!("Must have active color in FEN"),
-        };
-
-        let mut castleable = fen_fields
-            .next()
-            .expect("Castling Availability Required")
-            .chars();
-        let white_can_castle_kingside = fen_utils::is_castleable(
-            &mut castleable,
-            "Must provide castle info for White King Side",
-        );
-        let white_can_castle_queenside = fen_utils::is_castleable(
-            &mut castleable,
-            "Must provide castle info for Black Queen Side",
-        );
-        let black_can_castle_kingside = fen_utils::is_castleable(
-            &mut castleable,
-            "Must provide castle info for Black King Side",
-        );
-        let black_can_castle_queenside = fen_utils::is_castleable(
-            &mut castleable,
-            "Must provide castle info for Black Queen Side",
-        );
-
-        let target_square = fen_fields.next();
-        let en_passant_target = fen_utils::convert_en_passant_target(target_square);
-
-        let half_move_clock = fen_fields
-            .next()
-            .expect("Must provide half move clock value in FEN")
-            .parse::<u8>()
-            .expect("Could not parse half move clock value");
-
-        let full_move_number = fen_fields
-            .next()
-            .expect("Must provide full move number value in FEN")
-            .parse::<u16>()
-            .expect("Could not parse full move number value");
-
-        Game {
-            board,
-            active_color,
-            white_can_castle_kingside,
-            white_can_castle_queenside,
-            black_can_castle_kingside,
-            black_can_castle_queenside,
-            en_passant_target,
-            half_move_clock,
-            full_move_number,
-        }
-    }
-
-    pub fn to_fen(&self) -> String {
-        let pieces = fen_utils::game_board_to_piece_str(&self.board);
-        let active_color = match self.active_color {
-            Color::White => String::from("w"),
-            Color::Black => String::from("b"),
-        };
-
-        let mut castleable = String::new();
-        if self.white_can_castle_kingside {
-            castleable += "K";
-        }
-        if self.white_can_castle_queenside {
-            castleable += "Q";
-        }
-        if self.black_can_castle_kingside {
-            castleable += "k";
-        }
-        if self.black_can_castle_queenside {
-            castleable += "q";
-        }
-
-        let en_passant_square = fen_utils::square_to_string(&self.en_passant_target);
-        let half_move = &self.half_move_clock.to_string();
-        let full_move = &self.full_move_number.to_string();
-
-        format!("{pieces} {active_color} {castleable} {en_passant_square} {half_move} {full_move}")
-    }
-
-    pub fn make_move(&mut self, from: Square, to: Square) -> bool {
-        true
-    }
-}
-
-impl Default for Game {
-    fn default() -> Self {
-        Game {
-            board: [
-                [
-                    Some(Piece::Rook(Color::Black)),
-                    Some(Piece::Knight(Color::Black)),
-                    Some(Piece::Bishop(Color::Black)),
-                    Some(Piece::Queen(Color::Black)),
-                    Some(Piece::King(Color::Black)),
-                    Some(Piece::Bishop(Color::Black)),
-                    Some(Piece::Knight(Color::Black)),
-                    Some(Piece::Rook(Color::Black)),
-                ],
-                [
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                ],
-                [
-                    Some(Piece::Rook(Color::White)),
-                    Some(Piece::Knight(Color::White)),
-                    Some(Piece::Bishop(Color::White)),
-                    Some(Piece::Queen(Color::White)),
-                    Some(Piece::King(Color::White)),
-                    Some(Piece::Bishop(Color::White)),
-                    Some(Piece::Knight(Color::White)),
-                    Some(Piece::Rook(Color::White)),
-                ],
-            ],
-            active_color: Color::White,
-            white_can_castle_kingside: true,
-            white_can_castle_queenside: true,
-            black_can_castle_kingside: true,
-            black_can_castle_queenside: true,
-            en_passant_target: None,
-            half_move_clock: 0,
-            full_move_number: 1,
-        }
-    }
-}
-
-mod fen_utils {
-    use super::*;
-    use std::str::{Chars, Split};
-
-    pub fn square_to_string(square: &Option<Square>) -> &str {
-        match square {
+impl Square {
+    fn square_to_string(square: &Option<Square>) -> String {
+        String::from(match square {
             Some(Square::A1) => "a1",
             Some(Square::A2) => "a2",
             Some(Square::A3) => "a3",
@@ -268,57 +96,17 @@ mod fen_utils {
             Some(Square::H7) => "h7",
             Some(Square::H8) => "h8",
             None => "-",
-        }
+        })
     }
+}
 
-    pub fn game_board_to_piece_str(board: &[[Option<Piece>; 8]; 8]) -> String {
-        // Count of how many spaces in the row since last piece
-        let mut num = 0;
-        let mut pieces = String::new();
+trait FromString {
+    fn from_string(str: Option<&str>) -> Option<Square>;
+}
 
-        for row in board {
-            for piece in row {
-                let p = match piece {
-                    Some(Piece::Pawn(Color::Black)) => "p",
-                    Some(Piece::Rook(Color::Black)) => "r",
-                    Some(Piece::Knight(Color::Black)) => "n",
-                    Some(Piece::Bishop(Color::Black)) => "b",
-                    Some(Piece::Queen(Color::Black)) => "q",
-                    Some(Piece::King(Color::Black)) => "k",
-                    Some(Piece::Pawn(Color::White)) => "P",
-                    Some(Piece::Rook(Color::White)) => "R",
-                    Some(Piece::Knight(Color::White)) => "N",
-                    Some(Piece::Bishop(Color::White)) => "B",
-                    Some(Piece::Queen(Color::White)) => "Q",
-                    Some(Piece::King(Color::White)) => "K",
-                    None => "empty",
-                };
-                if p != "empty" {
-                    if num > 0 {
-                        pieces += &num.to_string();
-                        num = 0;
-                    }
-                    pieces += p;
-                } else {
-                    num += 1;
-                }
-            }
-            if num != 0 {
-                pieces += &num.to_string();
-            }
-            pieces += "/";
-            num = 0;
-        }
-        // Trim the last /
-        pieces[..pieces.len() - 1].to_string()
-    }
-
-    pub fn is_castleable(availability: &mut Chars, error_message: &str) -> bool {
-        availability.next().expect(error_message) != '-'
-    }
-
-    pub fn convert_en_passant_target(target_square: Option<&str>) -> Option<Square> {
-        match target_square {
+impl FromString for Square {
+    fn from_string(str: Option<&str>) -> Option<Square> {
+        match str {
             Some("a1") => Some(Square::A1),
             Some("a2") => Some(Square::A2),
             Some("a3") => Some(Square::A3),
@@ -388,8 +176,119 @@ mod fen_utils {
             _ => panic!("Must provide en passant target in FEN"),
         }
     }
+}
 
-    pub fn assemble_board(rows: Split<&str>) -> [[Option<Piece>; 8]; 8] {
+pub struct Game {
+    board: [[Option<Piece>; 8]; 8],
+    active_color: Color,
+    white_can_castle_kingside: bool,
+    white_can_castle_queenside: bool,
+    black_can_castle_kingside: bool,
+    black_can_castle_queenside: bool,
+    en_passant_target: Option<Square>,
+    half_move_clock: u8,
+    full_move_number: u16,
+}
+
+impl Game {
+    pub fn from_fen(&self, fen: &str) -> Game {
+        let fen = String::from(fen);
+        let mut fen_fields = fen.split_whitespace();
+        let rows = fen_fields
+            .next()
+            .expect("Incorrectly formatted string")
+            .split("/");
+        let board = Game::assemble_board(rows);
+        let active_color = match fen_fields.next() {
+            Some("w") => Color::White,
+            Some("b") => Color::Black,
+            None => panic!("Must have active color in FEN"),
+            _ => panic!("Must have active color in FEN"),
+        };
+
+        let mut castleable = fen_fields
+            .next()
+            .expect("Castling Availability Required")
+            .chars();
+        let white_can_castle_kingside = Game::is_castleable(
+            &mut castleable,
+            "Must provide castle info for White King Side",
+        );
+        let white_can_castle_queenside = Game::is_castleable(
+            &mut castleable,
+            "Must provide castle info for Black Queen Side",
+        );
+        let black_can_castle_kingside = Game::is_castleable(
+            &mut castleable,
+            "Must provide castle info for Black King Side",
+        );
+        let black_can_castle_queenside = Game::is_castleable(
+            &mut castleable,
+            "Must provide castle info for Black Queen Side",
+        );
+
+        let target_square = fen_fields.next();
+        let en_passant_target = Square::from_string(target_square);
+
+        let half_move_clock = fen_fields
+            .next()
+            .expect("Must provide half move clock value in FEN")
+            .parse::<u8>()
+            .expect("Could not parse half move clock value");
+
+        let full_move_number = fen_fields
+            .next()
+            .expect("Must provide full move number value in FEN")
+            .parse::<u16>()
+            .expect("Could not parse full move number value");
+
+        Game {
+            board,
+            active_color,
+            white_can_castle_kingside,
+            white_can_castle_queenside,
+            black_can_castle_kingside,
+            black_can_castle_queenside,
+            en_passant_target,
+            half_move_clock,
+            full_move_number,
+        }
+    }
+
+    pub fn to_fen(&self) -> String {
+        let pieces = Game::board_to_piece_string(&self);
+        let active_color = match self.active_color {
+            Color::White => String::from("w"),
+            Color::Black => String::from("b"),
+        };
+
+        let mut castleable = String::new();
+        if self.white_can_castle_kingside {
+            castleable += "K";
+        }
+        if self.white_can_castle_queenside {
+            castleable += "Q";
+        }
+        if self.black_can_castle_kingside {
+            castleable += "k";
+        }
+        if self.black_can_castle_queenside {
+            castleable += "q";
+        }
+
+        // let en_passant_square = fen_utils::square_to_string(&self.en_passant_target);
+        let en_passant_square = Square::square_to_string(&self.en_passant_target);
+        let half_move = &self.half_move_clock.to_string();
+        let full_move = &self.full_move_number.to_string();
+
+        format!("{pieces} {active_color} {castleable} {en_passant_square} {half_move} {full_move}")
+    }
+
+    pub fn make_move(&mut self, from: Square, to: Square) -> bool {
+        true
+    }
+
+    fn assemble_board(rows: Split<&str>) -> [[Option<Piece>; 8]; 8] {
         let mut board: [[Option<Piece>; 8]; 8] = [
             [None, None, None, None, None, None, None, None],
             [None, None, None, None, None, None, None, None],
@@ -424,6 +323,113 @@ mod fen_utils {
         }
 
         board
+    }
+
+    fn board_to_piece_string(&self) -> String {
+        // Count of how many spaces in the row since last piece
+        let mut num = 0;
+        let mut pieces = String::new();
+
+        for row in &self.board {
+            for piece in row {
+                let p = match piece {
+                    Some(Piece::Pawn(Color::Black)) => "p",
+                    Some(Piece::Rook(Color::Black)) => "r",
+                    Some(Piece::Knight(Color::Black)) => "n",
+                    Some(Piece::Bishop(Color::Black)) => "b",
+                    Some(Piece::Queen(Color::Black)) => "q",
+                    Some(Piece::King(Color::Black)) => "k",
+                    Some(Piece::Pawn(Color::White)) => "P",
+                    Some(Piece::Rook(Color::White)) => "R",
+                    Some(Piece::Knight(Color::White)) => "N",
+                    Some(Piece::Bishop(Color::White)) => "B",
+                    Some(Piece::Queen(Color::White)) => "Q",
+                    Some(Piece::King(Color::White)) => "K",
+                    None => "empty",
+                };
+                if p != "empty" {
+                    if num > 0 {
+                        pieces += &num.to_string();
+                        num = 0;
+                    }
+                    pieces += p;
+                } else {
+                    num += 1;
+                }
+            }
+            if num != 0 {
+                pieces += &num.to_string();
+            }
+            pieces += "/";
+            num = 0;
+        }
+        // Trim the last /
+        pieces[..pieces.len() - 1].to_string()
+    }
+
+    fn is_castleable(availability: &mut Chars, error_message: &str) -> bool {
+        availability.next().expect(error_message) != '-'
+    }
+}
+
+impl Default for Game {
+    fn default() -> Game {
+        Game {
+            board: [
+                [
+                    Some(Piece::Rook(Color::Black)),
+                    Some(Piece::Knight(Color::Black)),
+                    Some(Piece::Bishop(Color::Black)),
+                    Some(Piece::Queen(Color::Black)),
+                    Some(Piece::King(Color::Black)),
+                    Some(Piece::Bishop(Color::Black)),
+                    Some(Piece::Knight(Color::Black)),
+                    Some(Piece::Rook(Color::Black)),
+                ],
+                [
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                    Some(Piece::Pawn(Color::Black)),
+                ],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [None, None, None, None, None, None, None, None],
+                [
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                    Some(Piece::Pawn(Color::White)),
+                ],
+                [
+                    Some(Piece::Rook(Color::White)),
+                    Some(Piece::Knight(Color::White)),
+                    Some(Piece::Bishop(Color::White)),
+                    Some(Piece::Queen(Color::White)),
+                    Some(Piece::King(Color::White)),
+                    Some(Piece::Bishop(Color::White)),
+                    Some(Piece::Knight(Color::White)),
+                    Some(Piece::Rook(Color::White)),
+                ],
+            ],
+            active_color: Color::White,
+            white_can_castle_kingside: true,
+            white_can_castle_queenside: true,
+            black_can_castle_kingside: true,
+            black_can_castle_queenside: true,
+            en_passant_target: None,
+            half_move_clock: 0,
+            full_move_number: 1,
+        }
     }
 }
 
