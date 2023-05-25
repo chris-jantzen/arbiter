@@ -59,13 +59,12 @@ pub enum Square {
 }
 
 trait ToStr {
-    type Input;
-
-    fn to_str(input: &Option<Self::Input>) -> &str;
+    fn to_str(input: &Option<Self>) -> &str
+    where
+        Self: Sized;
 }
 
 impl ToStr for Piece {
-    type Input = Piece;
     fn to_str(piece: &Option<Piece>) -> &str {
         match piece {
             Some(Piece::Pawn(Color::Black)) => "p",
@@ -86,7 +85,6 @@ impl ToStr for Piece {
 }
 
 impl ToStr for Square {
-    type Input = Square;
     fn to_str(square: &Option<Square>) -> &str {
         match square {
             Some(Square::A1) => "a1",
