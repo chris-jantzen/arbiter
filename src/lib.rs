@@ -248,7 +248,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn from_fen(&self, fen: &str) -> Game {
+    pub fn from_fen(fen: &str) -> Game {
         let fen = String::from(fen);
         let mut fen_fields = fen.split_whitespace();
         let rows = fen_fields
@@ -263,26 +263,28 @@ impl Game {
             _ => panic!("Must have active color in FEN - valid values are either 'w' or 'b'"),
         };
 
-        let mut castleable = fen_fields
+        let castleable = fen_fields
             .next()
             .expect("Castling Availability Required")
             .chars();
-        let white_can_castle_kingside = Game::is_castleable(
-            &mut castleable,
-            "Must provide castle info for White King Side",
-        );
-        let white_can_castle_queenside = Game::is_castleable(
-            &mut castleable,
-            "Must provide castle info for Black Queen Side",
-        );
-        let black_can_castle_kingside = Game::is_castleable(
-            &mut castleable,
-            "Must provide castle info for Black King Side",
-        );
-        let black_can_castle_queenside = Game::is_castleable(
-            &mut castleable,
-            "Must provide castle info for Black Queen Side",
-        );
+
+        let mut white_can_castle_kingside = false;
+        let mut white_can_castle_queenside = false;
+        let mut black_can_castle_kingside = false;
+        let mut black_can_castle_queenside = false;
+        for castle in castleable {
+            if castle == '-' {
+                break;
+            } else if castle == 'k' {
+                black_can_castle_kingside = true;
+            } else if castle == 'q' {
+                black_can_castle_queenside = true;
+            } else if castle == 'K' {
+                white_can_castle_kingside = true;
+            } else if castle == 'Q' {
+                white_can_castle_queenside = true;
+            }
+        }
 
         let target_square = fen_fields.next();
         let en_passant_target =
@@ -380,30 +382,21 @@ impl Game {
         pieces[..pieces.len() - 1].to_string()
     }
 
-    fn is_castleable(availability: &mut Chars, error_message: &str) -> bool {
-        availability.next().expect(error_message) != '-'
-    }
-
     fn castleable_to_string(&self) -> String {
         let mut castleable = String::new();
         if self.white_can_castle_kingside {
             castleable += "K";
-        } else {
-            castleable += "-";
         }
         if self.white_can_castle_queenside {
             castleable += "Q";
-        } else {
-            castleable += "-";
         }
         if self.black_can_castle_kingside {
             castleable += "k";
-        } else {
-            castleable += "-";
         }
         if self.black_can_castle_queenside {
             castleable += "q";
-        } else {
+        }
+        if castleable.len() == 0 {
             castleable += "-";
         }
         castleable
@@ -412,62 +405,7 @@ impl Game {
 
 impl Default for Game {
     fn default() -> Game {
-        Game {
-            board: [
-                [
-                    Some(Piece::Rook(Color::Black)),
-                    Some(Piece::Knight(Color::Black)),
-                    Some(Piece::Bishop(Color::Black)),
-                    Some(Piece::Queen(Color::Black)),
-                    Some(Piece::King(Color::Black)),
-                    Some(Piece::Bishop(Color::Black)),
-                    Some(Piece::Knight(Color::Black)),
-                    Some(Piece::Rook(Color::Black)),
-                ],
-                [
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                    Some(Piece::Pawn(Color::Black)),
-                ],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [None, None, None, None, None, None, None, None],
-                [
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                    Some(Piece::Pawn(Color::White)),
-                ],
-                [
-                    Some(Piece::Rook(Color::White)),
-                    Some(Piece::Knight(Color::White)),
-                    Some(Piece::Bishop(Color::White)),
-                    Some(Piece::Queen(Color::White)),
-                    Some(Piece::King(Color::White)),
-                    Some(Piece::Bishop(Color::White)),
-                    Some(Piece::Knight(Color::White)),
-                    Some(Piece::Rook(Color::White)),
-                ],
-            ],
-            active_color: Color::White,
-            white_can_castle_kingside: true,
-            white_can_castle_queenside: true,
-            black_can_castle_kingside: true,
-            black_can_castle_queenside: true,
-            en_passant_target: None,
-            half_move_clock: 0,
-            full_move_number: 1,
-        }
+        Game::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
 }
 
@@ -487,8 +425,7 @@ mod tests {
     fn from_fen_success() {
         // New game fen string
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        let game = Game::default();
-        let res = game.from_fen(fen);
+        let res = Game::from_fen(fen);
         assert_eq!(res.half_move_clock, 0);
         assert_eq!(res.full_move_number, 1);
 
@@ -539,5 +476,22 @@ mod tests {
             game.to_fen(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
         );
+    }
+
+    #[test]
+    fn from_fen_mid_game_success() {
+        let fen = "rnbqkb1r/pp3ppp/2pp1n2/1B2p3/4P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5";
+
+        let res = Game::from_fen(fen);
+
+        assert_eq!(res.half_move_clock, 1);
+        assert_eq!(res.full_move_number, 5);
+
+        assert_eq!(res.white_can_castle_kingside, false);
+        assert_eq!(res.white_can_castle_queenside, false);
+        assert_eq!(res.black_can_castle_kingside, true);
+        assert_eq!(res.black_can_castle_queenside, true);
+
+        // TODO: the rest
     }
 }
