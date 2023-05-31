@@ -417,16 +417,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn to_fen_partial() {
+    fn to_fen_base() {
         let game = Game::default();
 
-        let f = String::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        assert_eq!(f, game.to_fen());
+        assert_eq!(
+            game.to_fen(),
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        );
     }
 
     #[test]
-    fn from_fen_success() {
-        // New game fen string
+    fn to_fen_with_moves_no_takes() {
+        let fen = "rnbqkb1r/pp3ppp/2pp1n2/1B2p3/4P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5";
+        let game = Game::from_fen(fen);
+        assert_eq!(game.to_fen(), fen);
+    }
+
+    #[test]
+    fn to_fen_with_moves_and_takes() {
+        let fen = "rnbk1b1r/ppNq1ppp/8/1B6/3Pp3/5N2/PPP2PPP/R1BQK2R b KQ d3 0 8";
+        let game = Game::from_fen(fen);
+        assert_eq!(game.to_fen(), fen);
+    }
+
+    #[test]
+    fn from_fen_base_success() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         let res = Game::from_fen(fen);
         assert_eq!(res.half_move_clock, 0);
@@ -472,18 +487,7 @@ mod tests {
     }
 
     #[test]
-    fn to_fen_success() {
-        let game = Game::default();
-
-        assert_eq!(
-            game.to_fen(),
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        );
-    }
-
-    // Case with moved pieces but none captured
-    #[test]
-    fn from_fen_mid_game_success() {
+    fn from_fen_with_moves_no_takes() {
         let fen = "rnbqkb1r/pp3ppp/2pp1n2/1B2p3/4P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5";
 
         let res = Game::from_fen(fen);
@@ -547,33 +551,97 @@ mod tests {
         assert!(matches!(res.board[1][2], None));
         assert!(matches!(res.board[1][3], None));
         assert!(matches!(res.board[1][4], None));
-        assert!(matches!(res.board[2][0], None));
-        assert!(matches!(res.board[2][1], None));
-        assert!(matches!(res.board[2][4], None));
-        assert!(matches!(res.board[2][6], None));
-        assert!(matches!(res.board[2][7], None));
-        assert!(matches!(res.board[3][0], None));
-        assert!(matches!(res.board[3][2], None));
-        assert!(matches!(res.board[3][3], None));
-        assert!(matches!(res.board[3][5], None));
-        assert!(matches!(res.board[3][6], None));
-        assert!(matches!(res.board[3][7], None));
-        assert!(matches!(res.board[4][0], None));
-        assert!(matches!(res.board[4][1], None));
-        assert!(matches!(res.board[4][2], None));
-        assert!(matches!(res.board[4][3], None));
-        assert!(matches!(res.board[4][5], None));
-        assert!(matches!(res.board[4][6], None));
-        assert!(matches!(res.board[4][7], None));
-        assert!(matches!(res.board[5][0], None));
-        assert!(matches!(res.board[5][1], None));
-        assert!(matches!(res.board[5][3], None));
-        assert!(matches!(res.board[5][4], None));
-        assert!(matches!(res.board[5][6], None));
-        assert!(matches!(res.board[5][7], None));
+        vec![0, 1, 4, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[2][s], None)));
+        vec![0, 2, 3, 5, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[3][s], None)));
+        vec![0, 1, 2, 3, 5, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[4][s], None)));
+        vec![0, 1, 3, 4, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[5][s], None)));
         assert!(matches!(res.board[6][4], None));
         assert!(matches!(res.board[7][1], None));
         assert!(matches!(res.board[7][4], None));
         assert!(matches!(res.board[7][7], None));
+    }
+
+    #[test]
+    fn from_fen_with_moves_and_takes() {
+        let fen = "rnbk1b1r/ppNq1ppp/8/1B6/3Pp3/5N2/PPP2PPP/R1BQK2R b KQ d3 0 8";
+        let res = Game::from_fen(fen);
+
+        assert_eq!(res.half_move_clock, 0);
+        assert_eq!(res.full_move_number, 8);
+
+        assert_eq!(res.white_can_castle_kingside, true);
+        assert_eq!(res.white_can_castle_queenside, true);
+        assert_eq!(res.black_can_castle_kingside, false);
+        assert_eq!(res.black_can_castle_queenside, false);
+
+        assert!(matches!(res.en_passant_target, Some(Square::D3)));
+
+        // Rooks
+        assert!(matches!(res.board[0][0], Some(Piece::Rook(Color::Black))));
+        assert!(matches!(res.board[0][7], Some(Piece::Rook(Color::Black))));
+        assert!(matches!(res.board[7][0], Some(Piece::Rook(Color::White))));
+        assert!(matches!(res.board[7][7], Some(Piece::Rook(Color::White))));
+
+        // Knights
+        assert!(matches!(res.board[0][1], Some(Piece::Knight(Color::Black))));
+        assert!(matches!(res.board[1][2], Some(Piece::Knight(Color::White))));
+        assert!(matches!(res.board[5][5], Some(Piece::Knight(Color::White))));
+
+        // Bishops
+        assert!(matches!(res.board[0][2], Some(Piece::Bishop(Color::Black))));
+        assert!(matches!(res.board[0][5], Some(Piece::Bishop(Color::Black))));
+        assert!(matches!(res.board[3][1], Some(Piece::Bishop(Color::White))));
+        assert!(matches!(res.board[7][2], Some(Piece::Bishop(Color::White))));
+
+        // Queens
+        assert!(matches!(res.board[1][3], Some(Piece::Queen(Color::Black))));
+        assert!(matches!(res.board[7][3], Some(Piece::Queen(Color::White))));
+
+        // Kings
+        assert!(matches!(res.board[0][3], Some(Piece::King(Color::Black))));
+        assert!(matches!(res.board[7][4], Some(Piece::King(Color::White))));
+
+        // Pawns
+        assert!(matches!(res.board[1][0], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][1], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[4][4], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][5], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][6], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][7], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[6][0], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][1], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][2], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[4][3], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][5], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][6], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][7], Some(Piece::Pawn(Color::White))));
+
+        // None
+        assert!(matches!(res.board[0][4], None));
+        assert!(matches!(res.board[0][6], None));
+        assert!(matches!(res.board[1][4], None));
+        (0..8).for_each(|s| assert!(matches!(res.board[2][s], None)));
+        vec![0, 2, 3, 4, 5, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[3][s], None)));
+        vec![0, 1, 2, 5, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[4][s], None)));
+        vec![0, 1, 2, 3, 4, 6, 7]
+            .iter()
+            .for_each(|&s| assert!(matches!(res.board[5][s], None)));
+        assert!(matches!(res.board[6][3], None));
+        assert!(matches!(res.board[6][4], None));
+        assert!(matches!(res.board[7][1], None));
+        assert!(matches!(res.board[7][5], None));
+        assert!(matches!(res.board[7][6], None));
     }
 }
