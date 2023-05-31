@@ -1,4 +1,4 @@
-use std::str::{Chars, Split};
+use std::str::Split;
 
 mod engine;
 
@@ -25,6 +25,30 @@ pub enum Piece {
     King(Color),
 }
 
+#[rustfmt::skip]
+pub enum Square {
+    A1, B1, C1, D1, E1, F1, G1, H1,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A8, B8, C8, D8, E8, F8, G8, H8,
+}
+
+pub struct Game {
+    board: [[Option<Piece>; 8]; 8],
+    active_color: Color,
+    white_can_castle_kingside: bool,
+    white_can_castle_queenside: bool,
+    black_can_castle_kingside: bool,
+    black_can_castle_queenside: bool,
+    en_passant_target: Option<Square>,
+    half_move_clock: u8,
+    full_move_number: u16,
+}
+
 impl Piece {
     fn from_char(piece: &char) -> Option<Piece> {
         match piece {
@@ -46,124 +70,85 @@ impl Piece {
     }
 }
 
-#[rustfmt::skip]
-pub enum Square {
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8,
+impl ToString for Square {
+    fn to_string(&self) -> String {
+        String::from(match self {
+            Square::A1 => "a1",
+            Square::A2 => "a2",
+            Square::A3 => "a3",
+            Square::A4 => "a4",
+            Square::A5 => "a5",
+            Square::A6 => "a6",
+            Square::A7 => "a7",
+            Square::A8 => "a8",
+            Square::B1 => "b1",
+            Square::B2 => "b2",
+            Square::B3 => "b3",
+            Square::B4 => "b4",
+            Square::B5 => "b5",
+            Square::B6 => "b6",
+            Square::B7 => "b7",
+            Square::B8 => "b8",
+            Square::C1 => "c1",
+            Square::C2 => "c2",
+            Square::C3 => "c3",
+            Square::C4 => "c4",
+            Square::C5 => "c5",
+            Square::C6 => "c6",
+            Square::C7 => "c7",
+            Square::C8 => "c8",
+            Square::D1 => "d1",
+            Square::D2 => "d2",
+            Square::D3 => "d3",
+            Square::D4 => "d4",
+            Square::D5 => "d5",
+            Square::D6 => "d6",
+            Square::D7 => "d7",
+            Square::D8 => "d8",
+            Square::E1 => "e1",
+            Square::E2 => "e2",
+            Square::E3 => "e3",
+            Square::E4 => "e4",
+            Square::E5 => "e5",
+            Square::E6 => "e6",
+            Square::E7 => "e7",
+            Square::E8 => "e8",
+            Square::F1 => "f1",
+            Square::F2 => "f2",
+            Square::F3 => "f3",
+            Square::F4 => "f4",
+            Square::F5 => "f5",
+            Square::F6 => "f6",
+            Square::F7 => "f7",
+            Square::F8 => "f8",
+            Square::G1 => "g1",
+            Square::G2 => "g2",
+            Square::G3 => "g3",
+            Square::G4 => "g4",
+            Square::G5 => "g5",
+            Square::G6 => "g6",
+            Square::G7 => "g7",
+            Square::G8 => "g8",
+            Square::H1 => "h1",
+            Square::H2 => "h2",
+            Square::H3 => "h3",
+            Square::H4 => "h4",
+            Square::H5 => "h5",
+            Square::H6 => "h6",
+            Square::H7 => "h7",
+            Square::H8 => "h8",
+        })
+    }
 }
 
-trait ToStr {
-    fn to_str(input: &Option<Self>) -> &str
+trait FromStr {
+    fn from_str(str: &str) -> Option<Self>
     where
         Self: Sized;
 }
 
-impl ToStr for Piece {
-    fn to_str(piece: &Option<Piece>) -> &str {
-        match piece {
-            Some(Piece::Pawn(Color::Black)) => "p",
-            Some(Piece::Rook(Color::Black)) => "r",
-            Some(Piece::Knight(Color::Black)) => "n",
-            Some(Piece::Bishop(Color::Black)) => "b",
-            Some(Piece::Queen(Color::Black)) => "q",
-            Some(Piece::King(Color::Black)) => "k",
-            Some(Piece::Pawn(Color::White)) => "P",
-            Some(Piece::Rook(Color::White)) => "R",
-            Some(Piece::Knight(Color::White)) => "N",
-            Some(Piece::Bishop(Color::White)) => "B",
-            Some(Piece::Queen(Color::White)) => "Q",
-            Some(Piece::King(Color::White)) => "K",
-            None => "empty",
-        }
-    }
-}
-
-impl ToStr for Square {
-    fn to_str(square: &Option<Square>) -> &str {
-        match square {
-            Some(Square::A1) => "a1",
-            Some(Square::A2) => "a2",
-            Some(Square::A3) => "a3",
-            Some(Square::A4) => "a4",
-            Some(Square::A5) => "a5",
-            Some(Square::A6) => "a6",
-            Some(Square::A7) => "a7",
-            Some(Square::A8) => "a8",
-            Some(Square::B1) => "b1",
-            Some(Square::B2) => "b2",
-            Some(Square::B3) => "b3",
-            Some(Square::B4) => "b4",
-            Some(Square::B5) => "b5",
-            Some(Square::B6) => "b6",
-            Some(Square::B7) => "b7",
-            Some(Square::B8) => "b8",
-            Some(Square::C1) => "c1",
-            Some(Square::C2) => "c2",
-            Some(Square::C3) => "c3",
-            Some(Square::C4) => "c4",
-            Some(Square::C5) => "c5",
-            Some(Square::C6) => "c6",
-            Some(Square::C7) => "c7",
-            Some(Square::C8) => "c8",
-            Some(Square::D1) => "d1",
-            Some(Square::D2) => "d2",
-            Some(Square::D3) => "d3",
-            Some(Square::D4) => "d4",
-            Some(Square::D5) => "d5",
-            Some(Square::D6) => "d6",
-            Some(Square::D7) => "d7",
-            Some(Square::D8) => "d8",
-            Some(Square::E1) => "e1",
-            Some(Square::E2) => "e2",
-            Some(Square::E3) => "e3",
-            Some(Square::E4) => "e4",
-            Some(Square::E5) => "e5",
-            Some(Square::E6) => "e6",
-            Some(Square::E7) => "e7",
-            Some(Square::E8) => "e8",
-            Some(Square::F1) => "f1",
-            Some(Square::F2) => "f2",
-            Some(Square::F3) => "f3",
-            Some(Square::F4) => "f4",
-            Some(Square::F5) => "f5",
-            Some(Square::F6) => "f6",
-            Some(Square::F7) => "f7",
-            Some(Square::F8) => "f8",
-            Some(Square::G1) => "g1",
-            Some(Square::G2) => "g2",
-            Some(Square::G3) => "g3",
-            Some(Square::G4) => "g4",
-            Some(Square::G5) => "g5",
-            Some(Square::G6) => "g6",
-            Some(Square::G7) => "g7",
-            Some(Square::G8) => "g8",
-            Some(Square::H1) => "h1",
-            Some(Square::H2) => "h2",
-            Some(Square::H3) => "h3",
-            Some(Square::H4) => "h4",
-            Some(Square::H5) => "h5",
-            Some(Square::H6) => "h6",
-            Some(Square::H7) => "h7",
-            Some(Square::H8) => "h8",
-            None => "-",
-        }
-    }
-}
-
-trait FromString {
-    fn from_string(str: &str) -> Option<Self>
-    where
-        Self: Sized;
-}
-
-impl FromString for Square {
-    fn from_string(str: &str) -> Option<Square> {
+impl FromStr for Square {
+    fn from_str(str: &str) -> Option<Square> {
         match str {
             "a1" => Some(Square::A1),
             "a2" => Some(Square::A2),
@@ -235,16 +220,23 @@ impl FromString for Square {
     }
 }
 
-pub struct Game {
-    board: [[Option<Piece>; 8]; 8],
-    active_color: Color,
-    white_can_castle_kingside: bool,
-    white_can_castle_queenside: bool,
-    black_can_castle_kingside: bool,
-    black_can_castle_queenside: bool,
-    en_passant_target: Option<Square>,
-    half_move_clock: u8,
-    full_move_number: u16,
+impl ToString for Piece {
+    fn to_string(&self) -> String {
+        String::from(match self {
+            Piece::Pawn(Color::Black) => "p",
+            Piece::Rook(Color::Black) => "r",
+            Piece::Knight(Color::Black) => "n",
+            Piece::Bishop(Color::Black) => "b",
+            Piece::Queen(Color::Black) => "q",
+            Piece::King(Color::Black) => "k",
+            Piece::Pawn(Color::White) => "P",
+            Piece::Rook(Color::White) => "R",
+            Piece::Knight(Color::White) => "N",
+            Piece::Bishop(Color::White) => "B",
+            Piece::Queen(Color::White) => "Q",
+            Piece::King(Color::White) => "K",
+        })
+    }
 }
 
 impl Game {
@@ -288,7 +280,7 @@ impl Game {
 
         let target_square = fen_fields.next();
         let en_passant_target =
-            Square::from_string(target_square.expect("En Passant Target Required in FEN string"));
+            Square::from_str(target_square.expect("En Passant Target Required in FEN string"));
 
         let half_move_clock = fen_fields
             .next()
@@ -321,7 +313,10 @@ impl Game {
 
         let castleable = self.castleable_to_string();
 
-        let en_passant_square = Square::to_str(&self.en_passant_target);
+        let en_passant_square = match &self.en_passant_target {
+            Some(square) => square.to_string(),
+            None => String::from("-"),
+        };
         let half_move = &self.half_move_clock.to_string();
         let full_move = &self.full_move_number.to_string();
 
@@ -344,11 +339,16 @@ impl Game {
             [None, None, None, None, None, None, None, None],
         ];
 
+        let mut skipped_spaces: usize = 0;
         for (row_index, row) in rows.enumerate() {
             for (piece_index, piece) in row.chars().enumerate() {
                 let board_position = Piece::from_char(&piece);
-                board[row_index][piece_index] = board_position;
+                if board_position.is_none() {
+                    skipped_spaces += (piece.to_string()).parse::<usize>().unwrap() - 1;
+                }
+                board[row_index][piece_index + skipped_spaces] = board_position;
             }
+            skipped_spaces = 0;
         }
 
         board
@@ -361,13 +361,16 @@ impl Game {
 
         for row in &self.board {
             for piece in row {
-                let p = Piece::to_str(piece);
+                let p = match piece {
+                    Some(p) => p.to_string(),
+                    None => String::from("empty"),
+                };
                 if p != "empty" {
                     if num > 0 {
                         pieces += &num.to_string();
                         num = 0;
                     }
-                    pieces += p;
+                    pieces += &p;
                 } else {
                     num += 1;
                 }
@@ -478,6 +481,7 @@ mod tests {
         );
     }
 
+    // Case with moved pieces but none captured
     #[test]
     fn from_fen_mid_game_success() {
         let fen = "rnbqkb1r/pp3ppp/2pp1n2/1B2p3/4P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5";
@@ -492,6 +496,84 @@ mod tests {
         assert_eq!(res.black_can_castle_kingside, true);
         assert_eq!(res.black_can_castle_queenside, true);
 
-        // TODO: the rest
+        assert!(matches!(res.en_passant_target, None));
+
+        // Rooks
+        assert!(matches!(res.board[0][0], Some(Piece::Rook(Color::Black))));
+        assert!(matches!(res.board[0][7], Some(Piece::Rook(Color::Black))));
+        assert!(matches!(res.board[7][5], Some(Piece::Rook(Color::White))));
+        assert!(matches!(res.board[7][0], Some(Piece::Rook(Color::White))));
+
+        // Knights
+        assert!(matches!(res.board[0][1], Some(Piece::Knight(Color::Black))));
+        assert!(matches!(res.board[2][5], Some(Piece::Knight(Color::Black))));
+        assert!(matches!(res.board[5][2], Some(Piece::Knight(Color::White))));
+        assert!(matches!(res.board[5][5], Some(Piece::Knight(Color::White))));
+
+        // Bishops
+        assert!(matches!(res.board[0][2], Some(Piece::Bishop(Color::Black))));
+        assert!(matches!(res.board[0][5], Some(Piece::Bishop(Color::Black))));
+        assert!(matches!(res.board[7][2], Some(Piece::Bishop(Color::White))));
+        assert!(matches!(res.board[3][1], Some(Piece::Bishop(Color::White))));
+
+        // Queens
+        assert!(matches!(res.board[0][3], Some(Piece::Queen(Color::Black))));
+        assert!(matches!(res.board[7][3], Some(Piece::Queen(Color::White))));
+
+        // Kings
+        assert!(matches!(res.board[0][4], Some(Piece::King(Color::Black))));
+        assert!(matches!(res.board[7][6], Some(Piece::King(Color::White))));
+
+        // Pawns
+        assert!(matches!(res.board[1][0], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][1], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[2][2], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[2][3], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[3][4], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][5], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][6], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[1][7], Some(Piece::Pawn(Color::Black))));
+        assert!(matches!(res.board[6][0], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][1], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][2], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][3], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[4][4], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][5], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][6], Some(Piece::Pawn(Color::White))));
+        assert!(matches!(res.board[6][7], Some(Piece::Pawn(Color::White))));
+
+        // None
+        assert!(matches!(res.board[0][6], None));
+        assert!(matches!(res.board[1][2], None));
+        assert!(matches!(res.board[1][3], None));
+        assert!(matches!(res.board[1][4], None));
+        assert!(matches!(res.board[2][0], None));
+        assert!(matches!(res.board[2][1], None));
+        assert!(matches!(res.board[2][4], None));
+        assert!(matches!(res.board[2][6], None));
+        assert!(matches!(res.board[2][7], None));
+        assert!(matches!(res.board[3][0], None));
+        assert!(matches!(res.board[3][2], None));
+        assert!(matches!(res.board[3][3], None));
+        assert!(matches!(res.board[3][5], None));
+        assert!(matches!(res.board[3][6], None));
+        assert!(matches!(res.board[3][7], None));
+        assert!(matches!(res.board[4][0], None));
+        assert!(matches!(res.board[4][1], None));
+        assert!(matches!(res.board[4][2], None));
+        assert!(matches!(res.board[4][3], None));
+        assert!(matches!(res.board[4][5], None));
+        assert!(matches!(res.board[4][6], None));
+        assert!(matches!(res.board[4][7], None));
+        assert!(matches!(res.board[5][0], None));
+        assert!(matches!(res.board[5][1], None));
+        assert!(matches!(res.board[5][3], None));
+        assert!(matches!(res.board[5][4], None));
+        assert!(matches!(res.board[5][6], None));
+        assert!(matches!(res.board[5][7], None));
+        assert!(matches!(res.board[6][4], None));
+        assert!(matches!(res.board[7][1], None));
+        assert!(matches!(res.board[7][4], None));
+        assert!(matches!(res.board[7][7], None));
     }
 }
