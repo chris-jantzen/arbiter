@@ -7,11 +7,11 @@ pub enum Color {
     Black,
 }
 
-impl Color {
-    fn to_string(color: &Color) -> &str {
-        match color {
-            Color::White => "w",
-            Color::Black => "b",
+impl ToString for Color {
+    fn to_string(&self) -> String {
+        match self {
+            Color::White => String::from("w"),
+            Color::Black => String::from("b"),
         }
     }
 }
@@ -444,6 +444,9 @@ mod tests {
     fn from_fen_base_success() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         let res = Game::from_fen(fen);
+
+        assert_eq!(res.active_color.to_string(), String::from("w"));
+
         assert_eq!(res.half_move_clock, 0);
         assert_eq!(res.full_move_number, 1);
 
@@ -491,6 +494,8 @@ mod tests {
         let fen = "rnbqkb1r/pp3ppp/2pp1n2/1B2p3/4P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 1 5";
 
         let res = Game::from_fen(fen);
+
+        assert_eq!(res.active_color.to_string(), String::from("b"));
 
         assert_eq!(res.half_move_clock, 1);
         assert_eq!(res.full_move_number, 5);
@@ -574,6 +579,8 @@ mod tests {
         let fen = "rnbk1b1r/ppNq1ppp/8/1B6/3Pp3/5N2/PPP2PPP/R1BQK2R b KQ d3 0 8";
         let res = Game::from_fen(fen);
 
+        assert_eq!(res.active_color.to_string(), String::from("b"));
+
         assert_eq!(res.half_move_clock, 0);
         assert_eq!(res.full_move_number, 8);
 
@@ -643,5 +650,61 @@ mod tests {
         assert!(matches!(res.board[7][1], None));
         assert!(matches!(res.board[7][5], None));
         assert!(matches!(res.board[7][6], None));
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_no_piece_data() {
+        let fen = "w KQkq - 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_invalid_piece_data() {
+        let fen = "Xnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_invalid_number_in_piece_data() {
+        let fen = "Xnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_no_en_passant_target() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_no_castling() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_no_active_color() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR KQkq - 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_no_half_move_clock() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_fen_no_full_move_number() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0";
+        Game::from_fen(fen);
     }
 }
