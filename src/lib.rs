@@ -301,15 +301,16 @@ impl Game {
             en_passant_target_err_msg,
         );
 
+        let move_count_err = "Must provide full move number and half move clock value in FEN";
         let half_move_clock = fen_fields
             .next()
-            .expect("Must provide half move clock value in FEN")
+            .expect(move_count_err)
             .parse::<u8>()
             .expect("Could not parse half move clock value");
 
         let full_move_number = fen_fields
             .next()
-            .expect("Must provide full move number value in FEN")
+            .expect(move_count_err)
             .parse::<u16>()
             .expect("Could not parse full move number value");
 
@@ -754,21 +755,21 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Must have active color in FEN - valid values are either 'w' or 'b'")]
     fn from_fen_no_active_color() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR KQkq - 0 1";
         Game::from_fen(fen);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Must provide full move number and half move clock value in FEN")]
     fn from_fen_no_half_move_clock() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 1";
         Game::from_fen(fen);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Must provide full move number and half move clock value in FEN")]
     fn from_fen_no_full_move_number() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0";
         Game::from_fen(fen);
