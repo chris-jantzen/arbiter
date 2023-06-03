@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::str::Split;
 
 mod engine;
@@ -141,14 +142,8 @@ impl ToString for Square {
     }
 }
 
-trait FromStr {
-    fn from_str(str: &str) -> Option<Self>
-    where
-        Self: Sized;
-}
-
-impl FromStr for Square {
-    fn from_str(str: &str) -> Option<Square> {
+impl Square {
+    fn from_str(str: &str, err_msg: &str) -> Option<Square> {
         match str {
             "a1" => Some(Square::A1),
             "a2" => Some(Square::A2),
@@ -215,7 +210,7 @@ impl FromStr for Square {
             "h7" => Some(Square::H7),
             "h8" => Some(Square::H8),
             "-" => None,
-            _ => panic!("En Passant Target Required in FEN string"),
+            _ => panic!("{}", err_msg),
         }
     }
 }
@@ -245,42 +240,66 @@ impl Game {
         let mut fen_fields = fen.split_whitespace();
         let rows = fen_fields
             .next()
-            .expect("Incorrectly formatted string")
+            .expect("Incorrectly formatted FEN string")
             .split("/");
+
+        Game::perform_input_validation_of_board(rows.clone());
         let board = Game::assemble_board(rows);
         let active_color = match fen_fields.next() {
             Some("w") => Color::White,
             Some("b") => Color::Black,
-            None => panic!("Must have active color in FEN"),
-            _ => panic!("Must have active color in FEN - valid values are either 'w' or 'b'"),
+            None | _ => {
+                panic!("Must have active color in FEN - valid values are either 'w' or 'b'")
+            }
         };
 
         let castleable = fen_fields
             .next()
-            .expect("Castling Availability Required")
+            .expect("Castling availability required in FEN")
             .chars();
-
         let mut white_can_castle_kingside = false;
         let mut white_can_castle_queenside = false;
         let mut black_can_castle_kingside = false;
         let mut black_can_castle_queenside = false;
-        for castle in castleable {
-            if castle == '-' {
-                break;
-            } else if castle == 'k' {
-                black_can_castle_kingside = true;
-            } else if castle == 'q' {
-                black_can_castle_queenside = true;
-            } else if castle == 'K' {
-                white_can_castle_kingside = true;
-            } else if castle == 'Q' {
-                white_can_castle_queenside = true;
+
+        // To distinguish between a missing castle availability portion of the FEN string and an en
+        // passant target since both can take a "-" as a value. If any KQkq are present, then it
+        // must be the en passant target square missing if no valid value for that is detected.
+        let mut castle_availability_present = false;
+
+        for piece in castleable {
+            match piece {
+                'k' => {
+                    black_can_castle_kingside = true;
+                    castle_availability_present = true;
+                }
+                'q' => {
+                    black_can_castle_queenside = true;
+                    castle_availability_present = true;
+                }
+                'K' => {
+                    white_can_castle_kingside = true;
+                    castle_availability_present = true;
+                }
+                'Q' => {
+                    white_can_castle_queenside = true;
+                    castle_availability_present = true;
+                }
+                '-' => break,
+                _ => panic!("Invalid value in castling availability section of FEN"),
             }
         }
 
         let target_square = fen_fields.next();
-        let en_passant_target =
-            Square::from_str(target_square.expect("En Passant Target Required in FEN string"));
+        let mut en_passant_target_err_msg =
+            "Either En Passant Target Square or Castling availability missing from FEN";
+        if castle_availability_present {
+            en_passant_target_err_msg = "En Passant Target Square missing in FEN";
+        }
+        let en_passant_target = Square::from_str(
+            target_square.expect("Invalid FEN string"),
+            en_passant_target_err_msg,
+        );
 
         let half_move_clock = fen_fields
             .next()
@@ -403,6 +422,45 @@ impl Game {
             castleable += "-";
         }
         castleable
+    }
+
+    fn perform_input_validation_of_board(rows: Split<&str>) {
+        let mut pieces: HashMap<char, i8> = HashMap::new();
+
+        for row in rows {
+            for piece in row.chars() {
+                match piece {
+                    '1'..='8' => continue,
+                    _ => {
+                        pieces
+                            .entry(piece)
+                            .and_modify(|count| *count += 1)
+                            .or_insert(1);
+                    }
+                }
+            }
+        }
+
+        for (piece, count) in &pieces {
+            match piece {
+                'p' | 'P' => {
+                    if count > &8 {
+                        panic!("Too many {}s found", piece);
+                    }
+                }
+                'r' | 'n' | 'b' | 'R' | 'N' | 'B' => {
+                    if count > &2 {
+                        panic!("Too many {}s found", piece);
+                    }
+                }
+                'q' | 'k' | 'Q' | 'K' => {
+                    if count > &1 {
+                        panic!("Too many {}s found", piece);
+                    }
+                }
+                _ => panic!("Invalid piece: {piece} found"),
+            }
+        }
     }
 }
 
@@ -653,6 +711,12 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "Incorrectly formatted FEN string")]
+    fn from_fen_given_zero_len_fen_string() {
+        Game::from_fen("");
+    }
+
+    #[test]
     #[should_panic]
     fn from_fen_no_piece_data() {
         let fen = "w KQkq - 0 1";
@@ -669,19 +733,21 @@ mod tests {
     #[test]
     #[should_panic]
     fn from_fen_invalid_number_in_piece_data() {
-        let fen = "Xnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let fen = "rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         Game::from_fen(fen);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "En Passant Target Square missing in FEN")]
     fn from_fen_no_en_passant_target() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 0 1";
         Game::from_fen(fen);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(
+        expected = "Either En Passant Target Square or Castling availability missing from FEN"
+    )]
     fn from_fen_no_castling() {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - 0 1";
         Game::from_fen(fen);
