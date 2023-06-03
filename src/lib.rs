@@ -718,23 +718,30 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Invalid piece: w found")]
     fn from_fen_no_piece_data() {
         let fen = "w KQkq - 0 1";
         Game::from_fen(fen);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Invalid piece: X found")]
     fn from_fen_invalid_piece_data() {
         let fen = "Xnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         Game::from_fen(fen);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Invalid piece: 9 found")]
     fn from_fen_invalid_number_in_piece_data() {
         let fen = "rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        Game::from_fen(fen);
+    }
+
+    #[test]
+    #[should_panic(expected = "Too many rs found")]
+    fn from_fen_too_many_rooks_found() {
+        let fen = "rrbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         Game::from_fen(fen);
     }
 
